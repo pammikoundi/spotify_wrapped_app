@@ -202,7 +202,7 @@ fun LoginScreen(onNavigateToCreateAccount: () -> Unit) {
                             val exception = task.exception
                             if (exception is FirebaseAuthInvalidCredentialsException) {
                                 // Handle invalid credentials
-                                Toast.makeText(context, "Invalid Credentials.", Toast.LENGTH_SHORT)
+                                Toast.makeText(context, "Is Password Longer than 6 characters?", Toast.LENGTH_SHORT)
                                     .show()
                             }
                         }
