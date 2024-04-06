@@ -208,6 +208,7 @@ class MainActivity : ComponentActivity() {
                         // Check if the user is logged in with Spotify
                         if (!::mAccessToken.isInitialized) {
                             Toast.makeText(context, "Please login with Spotify first", Toast.LENGTH_SHORT).show()
+                            return@Button
                         }
                         // Proceed to the next screen with user's selected options
                         // Mapping between user-facing options and internal representation
@@ -411,7 +412,6 @@ class MainActivity : ComponentActivity() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { navController.navigate("wrappedArtists") }
             ) {
                 // Lottie animation as the background
                 AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
