@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
                 MainScreen(navController)
             }
             composable("wrappedSetup") {
-                WrappedSetupPage(navController, viewModel)
+                WrappedSetupPage(uuid, navController, viewModel)
             }
             composable("settings") {
                 SettingsPage(navController)
@@ -143,7 +143,7 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedSetupPage(navController: NavController, viewModel: MainViewModel) {
+    fun WrappedSetupPage(uuid: String, navController: NavController, viewModel: MainViewModel) {
         val context = LocalContext.current
         Scaffold(
             topBar = {
@@ -218,7 +218,7 @@ class MainActivity : ComponentActivity() {
                             "Past 4 Weeks" to "short_term"
                         )
                         val selectedOptionMapped = optionsMapping[selectedOption] ?: error("Invalid option")
-                        viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped)
+                        viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped, uuid)
                         navController.navigate("wrappedStart")
                     },
                     modifier = Modifier.fillMaxWidth()
