@@ -25,10 +25,6 @@ fun WrappedPreview(modifier: Modifier = Modifier, name: String) {
     Scaffold(
         modifier = Modifier
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
             // Lottie animation as the background
             AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
             // Your main content goes here
@@ -57,4 +53,3 @@ fun WrappedPreview(modifier: Modifier = Modifier, name: String) {
             }
         }
     }
-}
