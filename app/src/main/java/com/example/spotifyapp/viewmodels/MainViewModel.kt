@@ -34,8 +34,9 @@ class MainViewModel : ViewModel() {
         FirebaseDatabase.getInstance().setPersistenceEnabled(true) // Enable offline capabilities
         database = FirebaseDatabase.getInstance().reference
     }
-
-    fun retrieveSpotifyData(mAccessToken: String, timeRange : String, currUser: String) {
+    private val wrappedRef = database.child("wrapped")
+    val wrappedId = wrappedRef.push().key ?:""
+    fun retrieveSpotifyData(mAccessToken: String, timeRange : String, currUser: String, wrappedName: String) {
         viewModelScope.launch {
             // Assume spotifyRequests is accessible here or passed somehow
             spotifyRequests.getSpotifyTrackHistory(mAccessToken, timeRange , object :
@@ -59,12 +60,15 @@ class MainViewModel : ViewModel() {
                                     val currentTrackPreview = trackPreview.value
                                     val currentArtistNames = artistNames.value
 
+
                                     saveTracksToDatabase(
                                         currentTrackNames,
                                         currentTrackImg,
                                         currentTrackPreview,
                                         currentArtistNames,
-                                        currUser
+                                        currUser,
+                                        wrappedId,
+                                        wrappedName
                                     )
                                 } catch (e: Exception) {
                                     Log.e("SpotifyHistory", "Failed to parse Spotify Artist history: ${e.message}")
@@ -89,10 +93,9 @@ class MainViewModel : ViewModel() {
                     tracks: List<String>,
                     trackImages: List<String>,
                     trackPreview: List<String>,
-                    artists: List<String>, currUser: String
+                    artists: List<String>, currUser: String, wrappedId: String, wrappedName: String
                 ) {
                     val wrappedRef = database.child("wrapped")
-                    val wrappedId = wrappedRef.push().key ?: return // Generate unique ID
                     Log.d("Firebase", "Wrapped Database ID: $wrappedId")
                     val wrappedData = hashMapOf(
                         "CreatingUser" to currUser,
@@ -100,6 +103,8 @@ class MainViewModel : ViewModel() {
                         "trackImage" to trackImages, // Assuming you have image URLs
                         "trackPreview" to trackPreview,
                         "artists" to artists,
+                        "wrappedName" to wrappedName,
+                        "SharedTo" to ""
                     )
 
                     wrappedRef.child(wrappedId).setValue(wrappedData)

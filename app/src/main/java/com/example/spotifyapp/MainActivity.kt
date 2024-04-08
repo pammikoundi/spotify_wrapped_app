@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -190,6 +192,15 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+                var wrappedName by remember { mutableStateOf("") }
+                TextField(
+                    value = wrappedName,
+                    onValueChange = { wrappedName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Wrapped Name") },
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = {
@@ -218,7 +229,7 @@ class MainActivity : ComponentActivity() {
                             "Past 4 Weeks" to "short_term"
                         )
                         val selectedOptionMapped = optionsMapping[selectedOption] ?: error("Invalid option")
-                        viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped, uuid)
+                        viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped, uuid, wrappedName)
                         navController.navigate("wrappedStart")
                     },
                     modifier = Modifier.fillMaxWidth()
