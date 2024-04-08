@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,7 +35,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,12 +59,12 @@ import com.example.spotifyapp.ui.theme.Purple
 import com.example.spotifyapp.viewmodels.MainViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.GenericTypeIndicator
 import com.spotify.sdk.android.auth.AuthorizationClient
+import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
-
-    private lateinit var databaseReference: DatabaseReference
 
     private val clientID = "8e7f849f40ba4e4d80a02604da0e3a76"
     private val redirectURI = "gt-wrapped://auth"
@@ -92,12 +94,10 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AppContent(viewModel: MainViewModel, uuid: String) {
         val navController = rememberNavController()
-        val trackNames by viewModel.trackNames.collectAsState()
-        val artistNames by viewModel.artistNames.collectAsState()
 
         NavHost(navController = navController, startDestination = "main") {
             composable("main") {
-                MainScreen(navController)
+                MainScreen(uuid, navController)
             }
             composable("wrappedSetup") {
                 WrappedSetupPage(uuid, navController, viewModel)
@@ -109,28 +109,82 @@ class MainActivity : ComponentActivity() {
                 WrappedScreen1(uuid, navController)
             }
             composable("wrappedTracks") {
-                WrappedScreen2(trackNames, navController)
+                WrappedScreen2(viewModel, navController)
             }
             composable("wrappedArtists") {
-                WrappedScreen3(artistNames, navController)
+                WrappedScreen3(viewModel, navController)
             }
         }
     }
 
     //Add View of old created, Notifications?, Share function, hold spotify info somehow
     @Composable
-    fun MainScreen(navController: NavController) {
-            // Main content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Spacer(modifier = Modifier.height(16.dp))
-                IconButton(onClick = { navController.navigate("settings") }) {
-                    Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings")
+    fun MainScreen(uuid: String, navController: NavController) {
+        // Main content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            IconButton(onClick = { navController.navigate("settings") }) {
+                Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings")
+            }
+
+            // State for holding wrapped IDs
+            var wrappedIDs by remember { mutableStateOf<List<String>>(emptyList()) }
+
+            // Fetch wrapped IDs from Firebase
+            LaunchedEffect(Unit) {
+                val database = FirebaseDatabase.getInstance().reference
+                database.child("wrapped").get().addOnSuccessListener { snapshot ->
+                    val ids = snapshot.children.mapNotNull { it.key }
+                    wrappedIDs = ids
+                    Log.i("firebase", "Got value $wrappedIDs")
+                }.addOnFailureListener { error ->
+                    Log.e("firebase", "Error getting data", error)
                 }
+            }
+
+            // LazyRow to display wrapped items
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(wrappedIDs) { wrappedUID ->
+                    Box(
+                        modifier = Modifier.clickable {
+                            navController.navigate("wrappedStart")
+                        }
+                    ) {
+                        var wrappedCreationUser by remember { mutableStateOf("") }
+                        var wrappedName by remember { mutableStateOf("") }
+
+                        // Fetch data for each wrapped UID
+                        LaunchedEffect(wrappedUID) {
+                            val database = FirebaseDatabase.getInstance().reference
+                            val wrappedRef = database.child("wrapped").child(wrappedUID)
+                            wrappedRef.child("CreatingUser").get().addOnSuccessListener { userSnapshot ->
+                                wrappedCreationUser = userSnapshot.value.toString()
+                                Log.i("firebase", "Got user value $wrappedCreationUser")
+                            }
+                            wrappedRef.child("wrappedName").get().addOnSuccessListener { nameSnapshot ->
+                                wrappedName = nameSnapshot.value.toString()
+                                Log.i("firebase", "Got name value $wrappedName")
+                            }
+                        }
+
+                        // Display the wrapped item if created by the current user
+                        if (wrappedCreationUser == uuid) {
+                            Text(wrappedName)
+                        }
+                    }
+                }
+            }
+
+
 
                 Button(
                     onClick = {
@@ -299,7 +353,7 @@ class MainActivity : ComponentActivity() {
                             Firebase.auth.sendPasswordResetEmail(emailAddress)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
-                                        Log.d("RESETUSER", "Email sent.")
+                                        Log.d("RESET USER", "Email sent.")
                                     }
                                 }
                         }
@@ -373,7 +427,22 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen2(trackNames: List<String>, navController: NavController) {
+    fun WrappedScreen2(viewModel: MainViewModel, navController: NavController) {
+        // MutableState to hold the list of track names
+        val wrappedId: String = viewModel.wrappedId
+        val trackNamesState = remember { mutableStateOf<List<String>>(emptyList()) }
+
+        LaunchedEffect(wrappedId) {
+            val database = FirebaseDatabase.getInstance().reference
+            try {
+                val snapshot = database.child("wrapped").child(wrappedId).child("trackName").get().await()
+                val trackNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                trackNamesState.value = trackNames ?: emptyList()
+            } catch (e: Exception) {
+                Log.e("firebase", "Error getting data", e)
+            }
+        }
+
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
@@ -391,7 +460,7 @@ class MainActivity : ComponentActivity() {
                     item {
                         TopAppBar(
                             title = {},
-                            colors =  TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent),
+                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent),
                             navigationIcon = {
                                 IconButton(onClick = { navController.navigateUp() }) {
                                     Icon(
@@ -402,7 +471,8 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     }
-                    items(trackNames) { trackName ->
+                    // Use the track names from the MutableState
+                    items(trackNamesState.value) { trackName ->
                         Text(
                             text = trackName,
                             modifier = Modifier.padding(16.dp),
@@ -414,15 +484,30 @@ class MainActivity : ComponentActivity() {
     }
 
 
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen3(artistNames: List<String>, navController: NavController) {
+    fun WrappedScreen3(viewModel: MainViewModel, navController: NavController) {
+        // MutableState to hold the list of artist names
+        val wrappedId = viewModel.wrappedId
+        val artistNamesState = remember { mutableStateOf<List<String>>(emptyList()) }
+
+        LaunchedEffect(wrappedId) {
+            val database = FirebaseDatabase.getInstance().reference
+            try {
+                val snapshot = database.child("wrapped").child(wrappedId).child("artists").get().await()
+                val artistNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                artistNamesState.value = artistNames ?: emptyList()
+            } catch (e: Exception) {
+                Log.e("firebase", "Error getting data", e)
+            }
+        }
+
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 // Lottie animation as the background
                 AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
@@ -431,7 +516,7 @@ class MainActivity : ComponentActivity() {
                     item {
                         TopAppBar(
                             title = {},
-                            colors =  TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent),
+                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent),
                             navigationIcon = {
                                 IconButton(onClick = { navController.navigateUp() }) {
                                     Icon(
@@ -442,8 +527,12 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     }
-                    items(artistNames) { artistName ->
-                        Text(text = artistName, modifier = Modifier.padding(16.dp))
+                    // Use the artist names from the MutableState
+                    items(artistNamesState.value) { artistName ->
+                        Text(
+                            text = artistName,
+                            modifier = Modifier.padding(16.dp),
+                        )
                     }
                 }
             }
