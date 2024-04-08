@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
     private val spotifyRequests = SpotifyRequests(clientID, redirectURI)
     private lateinit var mAccessToken : String
     private lateinit var mAccessCode : String
+    private var wrappedID = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,13 +107,13 @@ class MainActivity : ComponentActivity() {
                 SettingsPage(navController)
             }
             composable("wrappedStart") {
-                WrappedScreen1(uuid, navController)
+                WrappedScreen1(navController)
             }
             composable("wrappedTracks") {
-                WrappedScreen2(viewModel, navController)
+                WrappedScreen2(navController)
             }
             composable("wrappedArtists") {
-                WrappedScreen3(viewModel, navController)
+                WrappedScreen3(navController)
             }
         }
     }
@@ -156,6 +157,7 @@ class MainActivity : ComponentActivity() {
                 items(wrappedIDs) { wrappedUID ->
                     Box(
                         modifier = Modifier.clickable {
+                            wrappedID = wrappedUID
                             navController.navigate("wrappedStart")
                         }
                     ) {
@@ -175,10 +177,12 @@ class MainActivity : ComponentActivity() {
                                 Log.i("firebase", "Got name value $wrappedName")
                             }
                         }
-
                         // Display the wrapped item if created by the current user
                         if (wrappedCreationUser == uuid) {
-                            Text(wrappedName)
+                            Text(
+                                text = wrappedName,
+                                modifier = Modifier.padding(16.dp),
+                            )
                         }
                     }
                 }
@@ -284,6 +288,7 @@ class MainActivity : ComponentActivity() {
                         )
                         val selectedOptionMapped = optionsMapping[selectedOption] ?: error("Invalid option")
                         viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped, uuid, wrappedName)
+                        wrappedID = viewModel.wrappedId
                         navController.navigate("wrappedStart")
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -371,7 +376,7 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen1(uuid: String, navController: NavController) {
+    fun WrappedScreen1(navController: NavController) {
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
@@ -409,7 +414,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Text(
                                 modifier = Modifier,
-                                text = "Welcome to Spotify Wrapped $uuid!",
+                                text = "Welcome to Spotify Wrapped!",
                                 fontSize = 30.sp,
                                 style = TextStyle(
                                     brush = Brush.linearGradient(
@@ -427,15 +432,16 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen2(viewModel: MainViewModel, navController: NavController) {
+    fun WrappedScreen2(navController: NavController) {
         // MutableState to hold the list of track names
-        val wrappedId: String = viewModel.wrappedId
+        Log.i("WrappedIDPage2", wrappedID)
         val trackNamesState = remember { mutableStateOf<List<String>>(emptyList()) }
 
-        LaunchedEffect(wrappedId) {
+        LaunchedEffect(wrappedID) {
             val database = FirebaseDatabase.getInstance().reference
             try {
-                val snapshot = database.child("wrapped").child(wrappedId).child("trackName").get().await()
+                val snapshot =
+                    database.child("wrapped").child(wrappedID).child("trackName").get().await()
                 val trackNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 trackNamesState.value = trackNames ?: emptyList()
             } catch (e: Exception) {
@@ -487,15 +493,16 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen3(viewModel: MainViewModel, navController: NavController) {
+    fun WrappedScreen3(navController: NavController) {
         // MutableState to hold the list of artist names
-        val wrappedId = viewModel.wrappedId
+
         val artistNamesState = remember { mutableStateOf<List<String>>(emptyList()) }
 
-        LaunchedEffect(wrappedId) {
+        LaunchedEffect(wrappedID) {
             val database = FirebaseDatabase.getInstance().reference
             try {
-                val snapshot = database.child("wrapped").child(wrappedId).child("artists").get().await()
+                val snapshot =
+                    database.child("wrapped").child(wrappedID).child("artists").get().await()
                 val artistNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 artistNamesState.value = artistNames ?: emptyList()
             } catch (e: Exception) {

@@ -59,7 +59,7 @@ fun WrappedPreview(modifier: Modifier = Modifier, name: String) {
                     ) {
                         Text(
                             modifier = Modifier,
-                            text = "Welcome to Spotify Wrapped $name!",
+                            text = "Welcome to Spotify Wrapped named: $name!",
                             fontSize = 30.sp,
                             style = TextStyle(
                                 brush = Brush.linearGradient(
