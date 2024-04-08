@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var mAccessToken : String
     private lateinit var mAccessCode : String
     private var wrappedID = ""
+    private val mediaPlayer = MediaPlayer()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -378,10 +379,10 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun WrappedScreen1(navController: NavController) {
-
+        mediaPlayer.reset()
         val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
         val selectedTrackPreview = remember { mutableStateOf<String?>(null) }
-        val mediaPlayer = MediaPlayer()
+
 
         LaunchedEffect(wrappedID) {
             val database = FirebaseDatabase.getInstance().reference
@@ -401,13 +402,12 @@ class MainActivity : ComponentActivity() {
         if (selectedTrackPreview.value != null) {
             mediaPlayer.apply {
                 setDataSource(selectedTrackPreview.value)
-                prepareAsync()
+                prepare()
                 setOnPreparedListener {
                     start()
                 }
             }
         }
-
 
         Scaffold(
             modifier = Modifier.fillMaxSize()
@@ -468,6 +468,11 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun WrappedScreen2(navController: NavController) {
+
+        mediaPlayer.reset()
+        val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
+        val selectedTrackPreview = remember { mutableStateOf<String?>(null) }
+
         // MutableState to hold the list of track names
         Log.i("WrappedIDPage2", wrappedID)
         val trackNamesState = remember { mutableStateOf<List<String>>(emptyList()) }
@@ -483,6 +488,32 @@ class MainActivity : ComponentActivity() {
                 Log.e("firebase", "Error getting data", e)
             }
         }
+
+        LaunchedEffect(wrappedID) {
+            val database = FirebaseDatabase.getInstance().reference
+            try {
+                val snapshot =
+                    database.child("wrapped").child(wrappedID).child("trackPreview").get().await()
+                val trackPreview =
+                    snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                trackPreviews.value = trackPreview ?: emptyList()
+                // Select a random track preview
+                selectedTrackPreview.value = trackPreviews.value.randomOrNull()
+            } catch (e: Exception) {
+                Log.e("firebase", "Error getting data", e)
+            }
+        }
+        // Play the selected track preview if required
+        if (selectedTrackPreview.value != null) {
+            mediaPlayer.apply {
+                setDataSource(selectedTrackPreview.value)
+                prepare()
+                setOnPreparedListener {
+                    start()
+                }
+            }
+        }
+
 
         Scaffold(
             modifier = Modifier.fillMaxSize()
@@ -531,6 +562,10 @@ class MainActivity : ComponentActivity() {
     fun WrappedScreen3(navController: NavController) {
         // MutableState to hold the list of artist names
 
+        mediaPlayer.reset()
+        val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
+        val selectedTrackPreview = remember { mutableStateOf<String?>(null) }
+
         val artistNamesState = remember { mutableStateOf<List<String>>(emptyList()) }
 
         LaunchedEffect(wrappedID) {
@@ -542,6 +577,31 @@ class MainActivity : ComponentActivity() {
                 artistNamesState.value = artistNames ?: emptyList()
             } catch (e: Exception) {
                 Log.e("firebase", "Error getting data", e)
+            }
+        }
+
+        LaunchedEffect(wrappedID) {
+            val database = FirebaseDatabase.getInstance().reference
+            try {
+                val snapshot =
+                    database.child("wrapped").child(wrappedID).child("trackPreview").get().await()
+                val trackPreview =
+                    snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                trackPreviews.value = trackPreview ?: emptyList()
+                // Select a random track preview
+                selectedTrackPreview.value = trackPreviews.value.randomOrNull()
+            } catch (e: Exception) {
+                Log.e("firebase", "Error getting data", e)
+            }
+        }
+        // Play the selected track preview if required
+        if (selectedTrackPreview.value != null) {
+            mediaPlayer.apply {
+                setDataSource(selectedTrackPreview.value)
+                prepare()
+                setOnPreparedListener {
+                    start()
+                }
             }
         }
 
