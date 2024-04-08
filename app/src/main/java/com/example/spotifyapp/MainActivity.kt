@@ -1,6 +1,7 @@
 package com.example.spotifyapp
 
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -377,13 +378,47 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun WrappedScreen1(navController: NavController) {
+
+        val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
+        val selectedTrackPreview = remember { mutableStateOf<String?>(null) }
+        val mediaPlayer = MediaPlayer()
+
+        LaunchedEffect(wrappedID) {
+            val database = FirebaseDatabase.getInstance().reference
+            try {
+                val snapshot =
+                    database.child("wrapped").child(wrappedID).child("trackPreview").get().await()
+                val trackPreview =
+                    snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                trackPreviews.value = trackPreview ?: emptyList()
+                // Select a random track preview
+                selectedTrackPreview.value = trackPreviews.value.randomOrNull()
+            } catch (e: Exception) {
+                Log.e("firebase", "Error getting data", e)
+            }
+        }
+        // Play the selected track preview if required
+        if (selectedTrackPreview.value != null) {
+            mediaPlayer.apply {
+                setDataSource(selectedTrackPreview.value)
+                prepareAsync()
+                setOnPreparedListener {
+                    start()
+                }
+            }
+        }
+
+
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable { navController.navigate("wrappedTracks") }
+                    .clickable {
+                        // Pause music on screen change
+                        mediaPlayer.pause()
+                        navController.navigate("wrappedTracks") }
             ) {
                 // Lottie animation as the background
                 AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
