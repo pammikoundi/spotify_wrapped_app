@@ -27,15 +27,10 @@ class MainViewModel : ViewModel() {
     private val _artistNames = MutableStateFlow<List<String>>(emptyList())
     val artistNames: StateFlow<List<String>> = _artistNames
     val spotifyRequests = SpotifyRequests(clientID, redirectURI)
-    private var database: DatabaseReference
+    private var database: DatabaseReference = FirebaseDatabase.getInstance().reference
 
-    init {
-        // Initialize Firebase Realtime Database
-        FirebaseDatabase.getInstance().setPersistenceEnabled(true) // Enable offline capabilities
-        database = FirebaseDatabase.getInstance().reference
-    }
     private val wrappedRef = database.child("wrapped")
-    val wrappedId = wrappedRef.push().key ?:""
+    var wrappedId = ""
     fun retrieveSpotifyData(mAccessToken: String, timeRange : String, currUser: String, wrappedName: String) {
         viewModelScope.launch {
             // Assume spotifyRequests is accessible here or passed somehow
@@ -60,7 +55,7 @@ class MainViewModel : ViewModel() {
                                     val currentTrackPreview = trackPreview.value
                                     val currentArtistNames = artistNames.value
 
-
+                                    wrappedId = wrappedRef.push().key ?:""
                                     saveTracksToDatabase(
                                         currentTrackNames,
                                         currentTrackImg,
@@ -98,16 +93,14 @@ class MainViewModel : ViewModel() {
                     val wrappedRef = database.child("wrapped")
                     Log.d("Firebase", "Wrapped Database ID: $wrappedId")
                     val wrappedData = hashMapOf(
-                        "CreatingUser" to currUser,
                         "trackName" to tracks,
                         "trackImage" to trackImages, // Assuming you have image URLs
                         "trackPreview" to trackPreview,
                         "artists" to artists,
                         "wrappedName" to wrappedName,
-                        "SharedTo" to ""
                     )
 
-                    wrappedRef.child(wrappedId).setValue(wrappedData)
+                    wrappedRef.child(currUser).child(wrappedId).setValue(wrappedData)
                         .addOnSuccessListener {
                             Log.d("Firebase", "Track saved successfully: $wrappedId")
                         }

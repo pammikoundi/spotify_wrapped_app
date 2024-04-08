@@ -77,11 +77,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val uuid = intent.getStringExtra("uuid")
+        val uuid = Firebase.auth.currentUser!!.uid
         setContent {
-            if (uuid != null) {
-                MyApp(uuid)
-            }
+            MyApp(uuid)
         }
     }
 
@@ -109,13 +107,13 @@ class MainActivity : ComponentActivity() {
                 SettingsPage(navController)
             }
             composable("wrappedStart") {
-                WrappedScreen1(navController)
+                WrappedScreen1(uuid, navController)
             }
             composable("wrappedTracks") {
-                WrappedScreen2(navController)
+                WrappedScreen2(uuid, navController)
             }
             composable("wrappedArtists") {
-                WrappedScreen3(navController)
+                WrappedScreen3(uuid, navController)
             }
         }
     }
@@ -135,16 +133,20 @@ class MainActivity : ComponentActivity() {
                 Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings")
             }
 
+            Text("Previously Created Wrappeds")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // State for holding wrapped IDs
             var wrappedIDs by remember { mutableStateOf<List<String>>(emptyList()) }
 
             // Fetch wrapped IDs from Firebase
             LaunchedEffect(Unit) {
                 val database = FirebaseDatabase.getInstance().reference
-                database.child("wrapped").get().addOnSuccessListener { snapshot ->
+                database.child("wrapped").child(uuid).get().addOnSuccessListener { snapshot ->
                     val ids = snapshot.children.mapNotNull { it.key }
                     wrappedIDs = ids
-                    Log.i("firebase", "Got value $wrappedIDs")
+                    Log.i("firebase", "Got wrapped Ids $wrappedIDs")
                 }.addOnFailureListener { error ->
                     Log.e("firebase", "Error getting data", error)
                 }
@@ -154,7 +156,8 @@ class MainActivity : ComponentActivity() {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                userScrollEnabled = true
             ) {
                 items(wrappedIDs) { wrappedUID ->
                     Box(
@@ -163,34 +166,24 @@ class MainActivity : ComponentActivity() {
                             navController.navigate("wrappedStart")
                         }
                     ) {
-                        var wrappedCreationUser by remember { mutableStateOf("") }
                         var wrappedName by remember { mutableStateOf("") }
 
                         // Fetch data for each wrapped UID
                         LaunchedEffect(wrappedUID) {
                             val database = FirebaseDatabase.getInstance().reference
-                            val wrappedRef = database.child("wrapped").child(wrappedUID)
-                            wrappedRef.child("CreatingUser").get().addOnSuccessListener { userSnapshot ->
-                                wrappedCreationUser = userSnapshot.value.toString()
-                                Log.i("firebase", "Got user value $wrappedCreationUser")
-                            }
+                            val wrappedRef = database.child("wrapped").child(uuid).child(wrappedUID)
+
                             wrappedRef.child("wrappedName").get().addOnSuccessListener { nameSnapshot ->
                                 wrappedName = nameSnapshot.value.toString()
                                 Log.i("firebase", "Got name value $wrappedName")
                             }
                         }
-                        // Display the wrapped item if created by the current user
-                        if (wrappedCreationUser == uuid) {
-                            Text(
-                                text = wrappedName,
-                                modifier = Modifier.padding(16.dp),
-                            )
-                        }
+                        // Display the wrapped items for the current user
+                        Text(wrappedName)
+
                     }
                 }
             }
-
-
 
                 Button(
                     onClick = {
@@ -344,6 +337,8 @@ class MainActivity : ComponentActivity() {
                     user.delete()
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
+                                val database = FirebaseDatabase.getInstance().reference
+                                database.child("wrapped").child(user.uid).removeValue()
                                 Log.d("Deletion!!!", "User account deleted.")
                                 finish()
                             }
@@ -378,17 +373,16 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen1(navController: NavController) {
+    fun WrappedScreen1(uuid: String, navController: NavController) {
         mediaPlayer.reset()
         val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
         val selectedTrackPreview = remember { mutableStateOf<String?>(null) }
-
 
         LaunchedEffect(wrappedID) {
             val database = FirebaseDatabase.getInstance().reference
             try {
                 val snapshot =
-                    database.child("wrapped").child(wrappedID).child("trackPreview").get().await()
+                    database.child("wrapped").child(uuid).child(wrappedID).child("trackPreview").get().await()
                 val trackPreview =
                     snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 trackPreviews.value = trackPreview ?: emptyList()
@@ -418,7 +412,8 @@ class MainActivity : ComponentActivity() {
                     .clickable {
                         // Pause music on screen change
                         mediaPlayer.pause()
-                        navController.navigate("wrappedTracks") }
+                        navController.navigate("wrappedTracks")
+                    }
             ) {
                 // Lottie animation as the background
                 AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
@@ -467,7 +462,7 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen2(navController: NavController) {
+    fun WrappedScreen2(uuid: String, navController: NavController) {
 
         mediaPlayer.reset()
         val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
@@ -481,7 +476,7 @@ class MainActivity : ComponentActivity() {
             val database = FirebaseDatabase.getInstance().reference
             try {
                 val snapshot =
-                    database.child("wrapped").child(wrappedID).child("trackName").get().await()
+                    database.child("wrapped").child(uuid).child(wrappedID).child("trackName").get().await()
                 val trackNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 trackNamesState.value = trackNames ?: emptyList()
             } catch (e: Exception) {
@@ -493,7 +488,7 @@ class MainActivity : ComponentActivity() {
             val database = FirebaseDatabase.getInstance().reference
             try {
                 val snapshot =
-                    database.child("wrapped").child(wrappedID).child("trackPreview").get().await()
+                    database.child("wrapped").child(uuid).child(wrappedID).child("trackPreview").get().await()
                 val trackPreview =
                     snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 trackPreviews.value = trackPreview ?: emptyList()
@@ -559,7 +554,7 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun WrappedScreen3(navController: NavController) {
+    fun WrappedScreen3(uuid: String, navController: NavController) {
         // MutableState to hold the list of artist names
 
         mediaPlayer.reset()
@@ -572,7 +567,7 @@ class MainActivity : ComponentActivity() {
             val database = FirebaseDatabase.getInstance().reference
             try {
                 val snapshot =
-                    database.child("wrapped").child(wrappedID).child("artists").get().await()
+                    database.child("wrapped").child(uuid).child(wrappedID).child("artists").get().await()
                 val artistNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 artistNamesState.value = artistNames ?: emptyList()
             } catch (e: Exception) {
@@ -584,7 +579,7 @@ class MainActivity : ComponentActivity() {
             val database = FirebaseDatabase.getInstance().reference
             try {
                 val snapshot =
-                    database.child("wrapped").child(wrappedID).child("trackPreview").get().await()
+                    database.child("wrapped").child(uuid).child(wrappedID).child("trackPreview").get().await()
                 val trackPreview =
                     snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 trackPreviews.value = trackPreview ?: emptyList()

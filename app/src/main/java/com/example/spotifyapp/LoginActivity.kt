@@ -128,7 +128,7 @@ fun AccountCreationScreen(onNavigateToLogin: () -> Unit) {
                             Log.w(TAG, "createUserWithEmail:failure", task.exception)
                             Toast.makeText(
                                 context,
-                                "Authentication failed.",
+                                "Is Password Longer than 6 characters?",
                                 Toast.LENGTH_SHORT,
                             ).show()
                         }
@@ -188,13 +188,8 @@ fun LoginScreen(onNavigateToCreateAccount: () -> Unit) {
                 FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            // Handle successful login
-                            // Navigate to the main screen
-                            val uniqueID = FirebaseAuth.getInstance().currentUser?.uid
                             // Navigating to MainActivity
-                            val intent = Intent(context, MainActivity::class.java).apply {
-                                putExtra("uuid", uniqueID) // Pass the username as an extra
-                            }
+                            val intent = Intent(context, MainActivity::class.java)
                             context.startActivity(intent)
 
                         } else {
@@ -202,7 +197,7 @@ fun LoginScreen(onNavigateToCreateAccount: () -> Unit) {
                             val exception = task.exception
                             if (exception is FirebaseAuthInvalidCredentialsException) {
                                 // Handle invalid credentials
-                                Toast.makeText(context, "Is Password Longer than 6 characters?", Toast.LENGTH_SHORT)
+                                Toast.makeText(context, "Invalid Credentials.", Toast.LENGTH_SHORT)
                                     .show()
                             }
                         }
