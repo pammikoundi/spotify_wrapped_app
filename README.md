@@ -1,5 +1,21 @@
 # Spotify Wrapped
 
+# Update date - 4/9/2024
+
+Add images to wrap? (Need to ask TA if necessary, think it might be fine!)
+
+Need to mess around with the UI for dark/light mode (Extra if want to)
+
+✅Created more screens for Wrapped.
+
+✅Added Lottie file required files
+
+✅Important need to start database integration for data to get storage of wrapped
+
+✅Implement Navigation for Wrapped Screens
+
+✅ Parse through wrapped screens data
+
 # Update date - 4/1/2024
 
 Created more screens for Wrapped.
