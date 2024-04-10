@@ -29,9 +29,7 @@ class MainViewModel : ViewModel() {
     val spotifyRequests = SpotifyRequests(clientID, redirectURI)
     private var database: DatabaseReference = FirebaseDatabase.getInstance().reference
 
-    private val wrappedRef = database.child("wrapped")
-    var wrappedId = ""
-    fun retrieveSpotifyData(mAccessToken: String, timeRange : String, currUser: String, wrappedName: String) {
+    fun retrieveSpotifyData(mAccessToken: String, timeRange : String, currUser: String, wrappedName: String, wrappedID: String) {
         viewModelScope.launch {
             // Assume spotifyRequests is accessible here or passed somehow
             spotifyRequests.getSpotifyTrackHistory(mAccessToken, timeRange , object :
@@ -55,14 +53,13 @@ class MainViewModel : ViewModel() {
                                     val currentTrackPreview = trackPreview.value
                                     val currentArtistNames = artistNames.value
 
-                                    wrappedId = wrappedRef.push().key ?:""
                                     saveTracksToDatabase(
                                         currentTrackNames,
                                         currentTrackImg,
                                         currentTrackPreview,
                                         currentArtistNames,
                                         currUser,
-                                        wrappedId,
+                                        wrappedID,
                                         wrappedName
                                     )
                                 } catch (e: Exception) {

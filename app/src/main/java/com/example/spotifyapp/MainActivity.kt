@@ -122,6 +122,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreen(uuid: String, navController: NavController) {
         // Main content
+        mediaPlayer.reset()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -200,6 +201,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun WrappedSetupPage(uuid: String, navController: NavController, viewModel: MainViewModel) {
         val context = LocalContext.current
+        mediaPlayer.reset()
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -282,8 +284,11 @@ class MainActivity : ComponentActivity() {
                             "Past 4 Weeks" to "short_term"
                         )
                         val selectedOptionMapped = optionsMapping[selectedOption] ?: error("Invalid option")
-                        viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped, uuid, wrappedName)
-                        wrappedID = viewModel.wrappedId
+                        val database = FirebaseDatabase.getInstance().reference
+                        val wrappedRef = database.child("wrapped")
+                        wrappedID = wrappedRef.push().key ?:""
+                        viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped, uuid, wrappedName, wrappedID)
+
                         navController.navigate("wrappedStart")
                     },
                     modifier = Modifier.fillMaxWidth()
