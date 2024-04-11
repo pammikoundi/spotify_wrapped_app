@@ -429,7 +429,9 @@ class MainActivity : ComponentActivity() {
                         TopAppBar(
                             title = {},
                             navigationIcon = {
-                                IconButton(onClick = { navController.navigateUp() }) {
+                                IconButton(
+                                    onClick = { navController.navigateUp() }
+                                ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "Back"
