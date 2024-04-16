@@ -11,13 +11,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+//import androidx.compose.foundation.layout.FlowRowScopeInstance.align
+//import androidx.compose.foundation.layout.FlowColumnScopeInstance.align
+//import androidx.compose.foundation.layout.FlowRowScopeInstance.align
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -43,9 +48,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Cyan
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -64,7 +71,11 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.GenericTypeIndicator
 import com.spotify.sdk.android.auth.AuthorizationClient
 import kotlinx.coroutines.tasks.await
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.style.TextAlign
 
+val tan_nimbus = FontFamily(Font(R.font.tan_nimbus))
 class MainActivity : ComponentActivity() {
 
     private val clientID = "8e7f849f40ba4e4d80a02604da0e3a76"
@@ -423,11 +434,12 @@ class MainActivity : ComponentActivity() {
                 // Lottie animation as the background
                 AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
                 // Your main content goes here
-                LazyColumn(contentPadding = innerPadding) {
-                    item {
-
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+//                    item {
                         TopAppBar(
-                            title = {},
+                            title = {Box(modifier = Modifier.height(60.dp).fillMaxWidth().align(Alignment.CenterEnd)){AnimatedPreloader(
+                                resource = R.raw.starfish, fillScreen = false
+                            )}},
                             navigationIcon = {
                                 IconButton(
                                     onClick = { navController.navigateUp() }
@@ -442,28 +454,21 @@ class MainActivity : ComponentActivity() {
                         )
 
                         val gradientColors = listOf(Cyan, LightBlue, Purple)
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                modifier = Modifier,
-                                text = "Welcome to Spotify Wrapped!",
-                                fontSize = 30.sp,
-                                style = TextStyle(
-                                    brush = Brush.linearGradient(
-                                        colors = gradientColors
-                                    )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd){Text(
+                            modifier = Modifier,
+                            text = "Welcome to Spotify Wrapped!",
+                            fontSize = 30.sp,
+                            style = TextStyle(
+                                brush = Brush.linearGradient(
+                                    colors = gradientColors
                                 )
-                            )
-                        }
+                            ),
+                            fontFamily = tan_nimbus,
+                            textAlign = TextAlign.Center,
+                        )}
                     }
                 }
             }
-        }
     }
 
 
