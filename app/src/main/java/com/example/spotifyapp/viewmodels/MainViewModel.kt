@@ -52,10 +52,12 @@ class MainViewModel : ViewModel() {
                                     val currentTrackImg = trackImg.value
                                     val currentTrackPreview = trackPreview.value
                                     val currentArtistNames = artistNames.value
+                                    val artistImage = artistHistory.items.map { it.images[0].url}
 
                                     saveTracksToDatabase(
                                         currentTrackNames,
                                         currentTrackImg,
+                                        artistImage,
                                         currentTrackPreview,
                                         currentArtistNames,
                                         currUser,
@@ -84,6 +86,7 @@ class MainViewModel : ViewModel() {
                 private fun saveTracksToDatabase(
                     tracks: List<String>,
                     trackImages: List<String>,
+                    artistsImage: List<String>,
                     trackPreview: List<String>,
                     artists: List<String>, currUser: String, wrappedId: String, wrappedName: String
                 ) {
@@ -92,6 +95,7 @@ class MainViewModel : ViewModel() {
                     val wrappedData = hashMapOf(
                         "trackName" to tracks,
                         "trackImage" to trackImages, // Assuming you have image URLs
+                        "artistImage" to artistsImage,
                         "trackPreview" to trackPreview,
                         "artists" to artists,
                         "wrappedName" to wrappedName,

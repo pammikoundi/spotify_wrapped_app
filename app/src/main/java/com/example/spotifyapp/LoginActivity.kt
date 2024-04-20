@@ -156,6 +156,7 @@ fun LoginScreen(onNavigateToCreateAccount: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         Text("Login", fontWeight = FontWeight.Bold,
             fontSize = MaterialTheme.typography.displayMedium.fontSize)
 

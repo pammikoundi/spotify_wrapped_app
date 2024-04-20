@@ -75,7 +75,6 @@ import com.google.firebase.database.GenericTypeIndicator
 import com.spotify.sdk.android.auth.AuthorizationClient
 import kotlinx.coroutines.tasks.await
 
-val tan_nimbus = FontFamily(Font(R.font.tan_nimbus))
 class MainActivity : ComponentActivity() {
 
     private val clientID = "8e7f849f40ba4e4d80a02604da0e3a76"
@@ -85,6 +84,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var mAccessCode : String
     private var wrappedID = ""
     private val mediaPlayer = MediaPlayer()
+    private val tanNimbus = FontFamily(Font(R.font.tan_nimbus))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -467,7 +467,7 @@ class MainActivity : ComponentActivity() {
                                     colors = gradientColors
                                 )
                             ),
-                            fontFamily = tan_nimbus,
+                            fontFamily = tanNimbus,
                             textAlign = TextAlign.Center,
                         )}
                     }
@@ -546,10 +546,16 @@ class MainActivity : ComponentActivity() {
                 LazyColumn(contentPadding = innerPadding) {
                     item {
                         TopAppBar(
-                            title = {},
-                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent),
+                            title = {Box(modifier = Modifier
+                                .height(60.dp)
+                                .fillMaxWidth()
+                                .align(Alignment.CenterEnd)){AnimatedPreloader(
+                                resource = R.raw.starfish2, fillScreen = false
+                            )}},
                             navigationIcon = {
-                                IconButton(onClick = { navController.navigateUp() }) {
+                                IconButton(
+                                    onClick = { navController.navigateUp() }
+                                ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "Back",
@@ -557,6 +563,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             },
+                            colors =  TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent)
                         )
 
                         // Display the image if selectedImage is not null
@@ -579,12 +586,14 @@ class MainActivity : ComponentActivity() {
                         Text(
                             text = "Top Tracks",
                             style = TextStyle(
-                                fontFamily = tan_nimbus,
+                                fontFamily = tanNimbus,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 32.sp
                             ),
                             color = Color.White,
-                            modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                            modifier = Modifier
+                                .padding(32.dp)
+                                .fillMaxWidth(),
                             textAlign = TextAlign.Center
                         )
 
@@ -595,7 +604,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.width(30.dp),
                                     style =
                                         TextStyle(
-                                            fontFamily = tan_nimbus,
+                                            fontFamily = tanNimbus,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
                                         ),
@@ -606,7 +615,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.padding(start = 8.dp),
                                     style =
                                     TextStyle(
-                                        fontFamily = tan_nimbus,
+                                        fontFamily = tanNimbus,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 18.sp
                                     ),
@@ -621,44 +630,48 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun WrappedScreen3(uuid: String, navController: NavController) {
         // MutableState to hold the list of artist names
-
         mediaPlayer.reset()
         val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
         val selectedTrackPreview = remember { mutableStateOf<String?>(null) }
-
         val artistNamesState = remember { mutableStateOf<List<String>>(emptyList()) }
+        val artistImages = remember { mutableStateOf<List<String>>(emptyList()) }
+        val selectedImage = remember { mutableStateOf<String?>(null) }
 
         LaunchedEffect(wrappedID) {
             val database = FirebaseDatabase.getInstance().reference
             try {
-                val snapshot =
-                    database.child("wrapped").child(uuid).child(wrappedID).child("artists").get().await()
-                val artistNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                val wrappedRef = database.child("wrapped").child(uuid).child(wrappedID)
+
+                // Get artist names
+                val artistNamesSnapshot = wrappedRef.child("artists").get().await()
+                val artistNames =
+                    artistNamesSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 artistNamesState.value = artistNames ?: emptyList()
-            } catch (e: Exception) {
-                Log.e("firebase", "Error getting data", e)
-            }
-        }
 
-        LaunchedEffect(wrappedID) {
-            val database = FirebaseDatabase.getInstance().reference
-            try {
-                val snapshot =
-                    database.child("wrapped").child(uuid).child(wrappedID).child("trackPreview").get().await()
+                // Get track previews
+                val trackPreviewsSnapshot = wrappedRef.child("trackPreview").get().await()
                 val trackPreview =
-                    snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                    trackPreviewsSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 trackPreviews.value = trackPreview ?: emptyList()
                 // Select a random track preview
                 selectedTrackPreview.value = trackPreviews.value.randomOrNull()
+
+                // Get track images
+                val trackImagesSnapshot = wrappedRef.child("artistImage").get().await()
+                val trackImage =
+                    trackImagesSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                artistImages.value = trackImage ?: emptyList()
+                // Select a random track preview image
+                selectedImage.value = artistImages.value.randomOrNull()
             } catch (e: Exception) {
                 Log.e("firebase", "Error getting data", e)
             }
         }
+
         // Play the selected track preview if required
         if (selectedTrackPreview.value != null) {
             mediaPlayer.apply {
@@ -677,34 +690,94 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize()
             ) {
                 // Lottie animation as the background
-                AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
+                AnimatedPreloader(resource = R.raw.wrapped3_background, fillScreen = true)
                 // Your main content goes here
                 LazyColumn(contentPadding = innerPadding) {
-                    item {
-                        TopAppBar(
-                            title = {},
-                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent),
-                            navigationIcon = {
-                                IconButton(onClick = { navController.navigateUp() }) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back"
-                                    )
-                                }
-                            },
-                        )
-                    }
-                    // Use the artist names from the MutableState
-                    items(artistNamesState.value) { artistName ->
+                    item {TopAppBar(
+                        title = {Box(modifier = Modifier
+                            .height(60.dp)
+                            .fillMaxWidth()
+                            .align(Alignment.CenterEnd)){AnimatedPreloader(
+                            resource = R.raw.starfish, fillScreen = false
+                        )}},
+                        navigationIcon = {
+                            IconButton(
+                                onClick = { navController.navigateUp() }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color.White
+                                )
+                            }
+                        },
+                        colors =  TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent)
+                    )
+
+                        // Display the image if selectedImage is not null
+                        selectedImage.value?.let { imageUrl ->
+                            Image(
+                                painter = rememberAsyncImagePainter(
+                                    ImageRequest.Builder(LocalContext.current).data(data = imageUrl)
+                                        .apply {
+                                            scale(Scale.FILL) // Adjust the scale as needed
+                                        }.build()
+                                ),
+                                contentDescription = "Track Image",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height((LocalConfiguration.current.screenHeightDp * 0.40).dp)
+                                    .padding(5.dp)
+                            )
+                        }
+
                         Text(
-                            text = artistName,
-                            modifier = Modifier.padding(16.dp),
+                            text = "Top Artists",
+                            style = TextStyle(
+                                fontFamily = tanNimbus,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 32.sp
+                            ),
+                            color = Color.White,
+                            modifier = Modifier
+                                .padding(32.dp)
+                                .fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
+
+                        // Use the artist names from the MutableState
+                        artistNamesState.value.forEachIndexed { index, artistName ->
+                            Row(Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "${index + 1}.",
+                                    modifier = Modifier.width(30.dp),
+                                    style =
+                                    TextStyle(
+                                        fontFamily = tanNimbus,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                    ),
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = artistName,
+                                    modifier = Modifier.padding(start = 8.dp),
+                                    style =
+                                    TextStyle(
+                                        fontFamily = tanNimbus,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    color = Color.White
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
