@@ -31,7 +31,7 @@ public class AuthenticationActivity extends AppCompatActivity {
     public static final int AUTH_CODE_REQUEST_CODE = 1;
 
     private final OkHttpClient mOkHttpClient = new OkHttpClient();
-    private String mAccessToken, mAccessCode;
+    private String mAccessToken;
     private Call mCall;
 
     private TextView tokenTextView, codeTextView, profileTextView;
@@ -57,17 +57,11 @@ public class AuthenticationActivity extends AppCompatActivity {
 
         // Set the click listeners for the buttons
 
-        tokenBtn.setOnClickListener((v) -> {
-            spotifyRequests.getToken(AuthenticationActivity.this);
-        });
+        tokenBtn.setOnClickListener((v) -> spotifyRequests.getToken(AuthenticationActivity.this));
 
-        codeBtn.setOnClickListener((v) -> {
-            spotifyRequests.getCode(AuthenticationActivity.this);
-        });
+        codeBtn.setOnClickListener((v) -> spotifyRequests.getCode(AuthenticationActivity.this));
 
-        profileBtn.setOnClickListener((v) -> {
-            onGetUserProfileClicked();
-        });
+        profileBtn.setOnClickListener((v) -> onGetUserProfileClicked());
 
     }
 
@@ -86,7 +80,7 @@ public class AuthenticationActivity extends AppCompatActivity {
             setTextAsync(mAccessToken, tokenTextView);
 
         } else if (AUTH_CODE_REQUEST_CODE == requestCode) {
-            mAccessCode = response.getCode();
+            String mAccessCode = response.getCode();
             setTextAsync(mAccessCode, codeTextView);
         }
     }
