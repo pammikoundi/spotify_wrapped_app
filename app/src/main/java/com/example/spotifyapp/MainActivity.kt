@@ -224,24 +224,33 @@ class MainActivity : ComponentActivity() {
     fun WrappedSetupPage(uuid: String, navController: NavController, viewModel: MainViewModel) {
         val context = LocalContext.current
         mediaPlayer.reset()
-        Scaffold(
-            topBar = {
+
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ){
+                AnimatedPreloader(resource = R.raw.starfish, fillScreen = true)
+
+
                 TopAppBar(
                     title = {},
                     navigationIcon = {
-                        IconButton(onClick = { navController.navigateUp() }) {
+                        IconButton(
+                            onClick = { navController.navigateUp() }
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back"
                             )
                         }
-                    }
+                    },
+                    colors =  TopAppBarDefaults.centerAlignedTopAppBarColors(Color.Transparent)
                 )
-            }
-        ) { innerPadding ->
+
+                Spacer(modifier = Modifier.height(32.dp))
+
             Column(
-                modifier = Modifier.padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 64.dp)
             ) {
                 Text(text = "Create a New Wrapped", fontSize = 32.sp)
                 Spacer(modifier = Modifier.height(32.dp))
@@ -339,7 +348,7 @@ class MainActivity : ComponentActivity() {
 
                 }
             }
-        }
+    }
 
     //Account Logout, Account Deletion
     @OptIn(ExperimentalMaterial3Api::class)
