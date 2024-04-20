@@ -30,7 +30,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -134,6 +133,7 @@ class MainActivity : ComponentActivity() {
     fun MainScreen(uuid: String, navController: NavController) {
         // Main content
         mediaPlayer.reset()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -145,7 +145,7 @@ class MainActivity : ComponentActivity() {
                 Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings")
             }
 
-            Text("Previously Created Wrappeds")
+            Text("Previously Created Wrappeds", fontSize = 24.sp, fontFamily = tanNimbus)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -183,15 +183,24 @@ class MainActivity : ComponentActivity() {
                         // Fetch data for each wrapped UID
                         LaunchedEffect(wrappedUID) {
                             val database = FirebaseDatabase.getInstance().reference
-                            val wrappedRef = database.child("wrapped").child(uuid).child(wrappedUID)
+                            val wrappedRef =
+                                database.child("wrapped").child(uuid).child(wrappedUID)
 
-                            wrappedRef.child("wrappedName").get().addOnSuccessListener { nameSnapshot ->
-                                wrappedName = nameSnapshot.value.toString()
-                                Log.i("firebase", "Got name value $wrappedName")
-                            }
+                            wrappedRef.child("wrappedName").get()
+                                .addOnSuccessListener { nameSnapshot ->
+                                    wrappedName = nameSnapshot.value.toString()
+                                    Log.i("firebase", "Got name value $wrappedName")
+                                }
                         }
                         // Display the wrapped items for the current user
-                        Text(wrappedName)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height((LocalConfiguration.current.screenHeightDp * 0.40).dp)
+                                .padding(5.dp)
+                        ) {
+                            WrappedPreview(wrappedName)
+                        }
 
                     }
                 }
@@ -201,7 +210,9 @@ class MainActivity : ComponentActivity() {
                     onClick = {
                         navController.navigate("wrappedSetup")
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.End)
                 ) {
                     Text("Create Wrapped")
                 }
@@ -216,7 +227,7 @@ class MainActivity : ComponentActivity() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Wrapped Setup") },
+                    title = {},
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(
@@ -232,9 +243,11 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.padding(innerPadding),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Select Time Frame")
+                Text(text = "Create a New Wrapped", fontSize = 32.sp)
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(text = "Select Time Frame", fontSize = 24.sp)
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
                 val radioOptions = listOf("Past 1 Year", "Past 6 Months", "Past 4 Weeks")
                 val (selectedOption, onOptionSelected) = remember { mutableStateOf(radioOptions[1]) }
                 Column {
@@ -262,53 +275,71 @@ class MainActivity : ComponentActivity() {
                 TextField(
                     value = wrappedName,
                     onValueChange = { wrappedName = it },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
                     label = { Text("Wrapped Name") },
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = {
-                        // Handle login with Spotify here
-                        spotifyRequests.getToken(this@MainActivity)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Login With Spotify")
+                Box(modifier = Modifier.padding(20.dp)) {
+                    Column {
+                        Button(
+                            onClick = {
+                                // Handle login with Spotify here
+                                spotifyRequests.getToken(this@MainActivity)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Login With Spotify")
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                // Check if the user is logged in with Spotify
+                                if (!::mAccessToken.isInitialized) {
+                                    Toast.makeText(
+                                        context,
+                                        "Please login with Spotify first",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@Button
+                                }
+                                // Proceed to the next screen with user's selected options
+                                // Mapping between user-facing options and internal representation
+                                val optionsMapping = mapOf(
+                                    "Past 1 Year" to "long_term",
+                                    "Past 6 Months" to "medium_term",
+                                    "Past 4 Weeks" to "short_term"
+                                )
+                                val selectedOptionMapped =
+                                    optionsMapping[selectedOption] ?: error("Invalid option")
+                                val database = FirebaseDatabase.getInstance().reference
+                                val wrappedRef = database.child("wrapped")
+                                wrappedID = wrappedRef.push().key ?: ""
+                                viewModel.retrieveSpotifyData(
+                                    mAccessToken,
+                                    selectedOptionMapped,
+                                    uuid,
+                                    wrappedName,
+                                    wrappedID
+                                )
+
+                                navController.navigate("wrappedStart")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Create Wrapped")
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        // Check if the user is logged in with Spotify
-                        if (!::mAccessToken.isInitialized) {
-                            Toast.makeText(context, "Please login with Spotify first", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        // Proceed to the next screen with user's selected options
-                        // Mapping between user-facing options and internal representation
-                        val optionsMapping = mapOf(
-                            "Past 1 Year" to "long_term",
-                            "Past 6 Months" to "medium_term",
-                            "Past 4 Weeks" to "short_term"
-                        )
-                        val selectedOptionMapped = optionsMapping[selectedOption] ?: error("Invalid option")
-                        val database = FirebaseDatabase.getInstance().reference
-                        val wrappedRef = database.child("wrapped")
-                        wrappedID = wrappedRef.push().key ?:""
-                        viewModel.retrieveSpotifyData(mAccessToken, selectedOptionMapped, uuid, wrappedName, wrappedID)
-
-                        navController.navigate("wrappedStart")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Create Wrapped")
                 }
             }
         }
-    }
 
     //Account Logout, Account Deletion
     @OptIn(ExperimentalMaterial3Api::class)
@@ -317,7 +348,7 @@ class MainActivity : ComponentActivity() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Settings") },
+                    title = {},
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(
@@ -325,10 +356,7 @@ class MainActivity : ComponentActivity() {
                                 contentDescription = "Back"
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    }
                 )
             }
         ) { innerPadding ->
@@ -336,7 +364,8 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.padding(innerPadding),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Settings Page")
+                Text(text = "Settings", fontSize = 32.sp)
+                Spacer(modifier = Modifier.height(64.dp))
                 Button(
                     onClick = {
                         Firebase.auth.signOut()
@@ -346,21 +375,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Text("Logout")
                 }
-                Button(onClick = {
-                    val user = Firebase.auth.currentUser!!
-//Should Probably Create a confirmation for this!!!
-                    user.delete()
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                val database = FirebaseDatabase.getInstance().reference
-                                database.child("wrapped").child(user.uid).removeValue()
-                                Log.d("Deletion!!!", "User account deleted.")
-                                finish()
-                            }
-                        }
-                }){
-                    Text("Delete Account")
-                }
+                Spacer(modifier = Modifier.height(32.dp))
                 Button(
                     onClick = {
                         val user = Firebase.auth.currentUser!!
@@ -375,12 +390,38 @@ class MainActivity : ComponentActivity() {
                                 }
                         }
 
-                    }
-                ){
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
 
                     Text("Forgot Password")
                 }
-            }
+                Spacer(modifier = Modifier.height(64.dp))
+                Text(
+                    "Danger!! This will Permanently delete this account and all data associated with it. No chance of recovery!!",
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = {
+                        val user = Firebase.auth.currentUser!!
+//Should Probably Create a confirmation for this!!!
+                        user.delete()
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    val database = FirebaseDatabase.getInstance().reference
+                                    database.child("wrapped").child(user.uid).removeValue()
+                                    Log.d("Deletion!!!", "User account deleted.")
+                                    finish()
+                                }
+                            }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Delete Account")
+                }
+                }
+
         }
     }
 
@@ -438,12 +479,7 @@ class MainActivity : ComponentActivity() {
                     .fillMaxSize()
                     .padding(innerPadding)) {
                         TopAppBar(
-                            title = {Box(modifier = Modifier
-                                .height(60.dp)
-                                .fillMaxWidth()
-                                .align(Alignment.CenterEnd)){AnimatedPreloader(
-                                resource = R.raw.starfish, fillScreen = false
-                            )}},
+                            title = {},
                             navigationIcon = {
                                 IconButton(
                                     onClick = { navController.navigateUp() }
@@ -777,8 +813,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         val response = AuthorizationClient.getResponse(resultCode, data)
