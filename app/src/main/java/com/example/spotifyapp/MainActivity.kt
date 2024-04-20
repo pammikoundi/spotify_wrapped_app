@@ -7,22 +7,19 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-//import androidx.compose.foundation.layout.FlowRowScopeInstance.align
-//import androidx.compose.foundation.layout.FlowColumnScopeInstance.align
-//import androidx.compose.foundation.layout.FlowRowScopeInstance.align
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -48,13 +45,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Cyan
-import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -62,6 +62,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import coil.size.Scale
 import com.example.spotifyapp.ui.theme.LightBlue
 import com.example.spotifyapp.ui.theme.Purple
 import com.example.spotifyapp.viewmodels.MainViewModel
@@ -71,9 +74,6 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.GenericTypeIndicator
 import com.spotify.sdk.android.auth.AuthorizationClient
 import kotlinx.coroutines.tasks.await
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.style.TextAlign
 
 val tan_nimbus = FontFamily(Font(R.font.tan_nimbus))
 class MainActivity : ComponentActivity() {
@@ -310,8 +310,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-    //Account Logout, Account Deletion, Dark Mode Toggle
+    //Account Logout, Account Deletion
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun SettingsPage(navController: NavController){
@@ -434,10 +433,15 @@ class MainActivity : ComponentActivity() {
                 // Lottie animation as the background
                 AnimatedPreloader(resource = R.raw.wrapped1_background, fillScreen = true)
                 // Your main content goes here
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-//                    item {
+
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)) {
                         TopAppBar(
-                            title = {Box(modifier = Modifier.height(60.dp).fillMaxWidth().align(Alignment.CenterEnd)){AnimatedPreloader(
+                            title = {Box(modifier = Modifier
+                                .height(60.dp)
+                                .fillMaxWidth()
+                                .align(Alignment.CenterEnd)){AnimatedPreloader(
                                 resource = R.raw.starfish, fillScreen = false
                             )}},
                             navigationIcon = {
@@ -478,7 +482,9 @@ class MainActivity : ComponentActivity() {
 
         mediaPlayer.reset()
         val trackPreviews = remember { mutableStateOf<List<String>>(emptyList()) }
+        val trackImages = remember { mutableStateOf<List<String>>(emptyList()) }
         val selectedTrackPreview = remember { mutableStateOf<String?>(null) }
+        val selectedImage = remember { mutableStateOf<String?>(null) }
 
         // MutableState to hold the list of track names
         Log.i("WrappedIDPage2", wrappedID)
@@ -487,29 +493,31 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(wrappedID) {
             val database = FirebaseDatabase.getInstance().reference
             try {
-                val snapshot =
-                    database.child("wrapped").child(uuid).child(wrappedID).child("trackName").get().await()
-                val trackNames = snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                val wrappedRef = database.child("wrapped").child(uuid).child(wrappedID)
+
+                // Get track names
+                val trackNamesSnapshot = wrappedRef.child("trackName").get().await()
+                val trackNames = trackNamesSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
                 trackNamesState.value = trackNames ?: emptyList()
+
+                // Get track previews
+                val trackPreviewsSnapshot = wrappedRef.child("trackPreview").get().await()
+                val trackPreview = trackPreviewsSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                trackPreviews.value = trackPreview ?: emptyList()
+                // Select a random track preview
+                selectedTrackPreview.value = trackPreviews.value.randomOrNull()
+
+                // Get track images
+                val trackImagesSnapshot = wrappedRef.child("trackImage").get().await()
+                val trackImage = trackImagesSnapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
+                trackImages.value = trackImage ?: emptyList()
+                // Select a random track preview image
+                selectedImage.value = trackImages.value.randomOrNull()
             } catch (e: Exception) {
                 Log.e("firebase", "Error getting data", e)
             }
         }
 
-        LaunchedEffect(wrappedID) {
-            val database = FirebaseDatabase.getInstance().reference
-            try {
-                val snapshot =
-                    database.child("wrapped").child(uuid).child(wrappedID).child("trackPreview").get().await()
-                val trackPreview =
-                    snapshot.getValue(object : GenericTypeIndicator<List<String>>() {})
-                trackPreviews.value = trackPreview ?: emptyList()
-                // Select a random track preview
-                selectedTrackPreview.value = trackPreviews.value.randomOrNull()
-            } catch (e: Exception) {
-                Log.e("firebase", "Error getting data", e)
-            }
-        }
         // Play the selected track preview if required
         if (selectedTrackPreview.value != null) {
             mediaPlayer.apply {
@@ -521,7 +529,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
@@ -532,8 +539,9 @@ class MainActivity : ComponentActivity() {
             ) {
                 // Lottie animation as the background
                 AnimatedPreloader(
-                    resource = R.raw.starfish, fillScreen = false
+                    resource = R.raw.wrapped2_background, fillScreen = true
                 )
+
                 // Your main content goes here
                 LazyColumn(contentPadding = innerPadding) {
                     item {
@@ -544,24 +552,74 @@ class MainActivity : ComponentActivity() {
                                 IconButton(onClick = { navController.navigateUp() }) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back"
+                                        contentDescription = "Back",
+                                        tint = Color.White
                                     )
                                 }
                             },
                         )
-                    }
-                    // Use the track names from the MutableState
-                    items(trackNamesState.value) { trackName ->
+
+                        // Display the image if selectedImage is not null
+                        selectedImage.value?.let { imageUrl ->
+                            Image(
+                                painter = rememberAsyncImagePainter(
+                                    ImageRequest.Builder(LocalContext.current).data(data = imageUrl)
+                                        .apply {
+                                            scale(Scale.FILL) // Adjust the scale as needed
+                                        }.build()
+                                ),
+                                contentDescription = "Track Image",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height((LocalConfiguration.current.screenHeightDp * 0.40).dp)
+                                    .padding(5.dp)
+                            )
+                        }
+
                         Text(
-                            text = trackName,
-                            modifier = Modifier.padding(16.dp),
+                            text = "Top Tracks",
+                            style = TextStyle(
+                                fontFamily = tan_nimbus,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 32.sp
+                            ),
+                            color = Color.White,
+                            modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
+
+                        trackNamesState.value.forEachIndexed { index, trackName ->
+                            Row(Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "${index + 1}.",
+                                    modifier = Modifier.width(30.dp),
+                                    style =
+                                        TextStyle(
+                                            fontFamily = tan_nimbus,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp,
+                                        ),
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = trackName,
+                                    modifier = Modifier.padding(start = 8.dp),
+                                    style =
+                                    TextStyle(
+                                        fontFamily = tan_nimbus,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    color = Color.White
+                                )
+                            }
+                        }
+
                     }
                 }
             }
         }
     }
-
 
 
     @OptIn(ExperimentalMaterial3Api::class)
