@@ -29,9 +29,7 @@ class MainViewModel : ViewModel() {
     val spotifyRequests = SpotifyRequests(clientID, redirectURI)
     private var database: DatabaseReference = FirebaseDatabase.getInstance().reference
 
-    private val wrappedRef = database.child("wrapped")
-    var wrappedId = ""
-    fun retrieveSpotifyData(mAccessToken: String, timeRange : String, currUser: String, wrappedName: String) {
+    fun retrieveSpotifyData(mAccessToken: String, timeRange : String, currUser: String, wrappedName: String, wrappedID: String) {
         viewModelScope.launch {
             // Assume spotifyRequests is accessible here or passed somehow
             spotifyRequests.getSpotifyTrackHistory(mAccessToken, timeRange , object :
@@ -54,15 +52,16 @@ class MainViewModel : ViewModel() {
                                     val currentTrackImg = trackImg.value
                                     val currentTrackPreview = trackPreview.value
                                     val currentArtistNames = artistNames.value
+                                    val artistImage = artistHistory.items.map { it.images[0].url}
 
-                                    wrappedId = wrappedRef.push().key ?:""
                                     saveTracksToDatabase(
                                         currentTrackNames,
                                         currentTrackImg,
+                                        artistImage,
                                         currentTrackPreview,
                                         currentArtistNames,
                                         currUser,
-                                        wrappedId,
+                                        wrappedID,
                                         wrappedName
                                     )
                                 } catch (e: Exception) {
@@ -87,6 +86,7 @@ class MainViewModel : ViewModel() {
                 private fun saveTracksToDatabase(
                     tracks: List<String>,
                     trackImages: List<String>,
+                    artistsImage: List<String>,
                     trackPreview: List<String>,
                     artists: List<String>, currUser: String, wrappedId: String, wrappedName: String
                 ) {
@@ -95,6 +95,7 @@ class MainViewModel : ViewModel() {
                     val wrappedData = hashMapOf(
                         "trackName" to tracks,
                         "trackImage" to trackImages, // Assuming you have image URLs
+                        "artistImage" to artistsImage,
                         "trackPreview" to trackPreview,
                         "artists" to artists,
                         "wrappedName" to wrappedName,
