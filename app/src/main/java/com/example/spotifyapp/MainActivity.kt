@@ -1,8 +1,5 @@
 package com.example.spotifyapp
 
-import WrappedScreen1
-import WrappedScreen2
-import WrappedScreen3
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle

@@ -1,3 +1,5 @@
+package com.example.spotifyapp
+
 import android.media.MediaPlayer
 import android.util.Log
 import androidx.compose.foundation.clickable
@@ -27,8 +29,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.spotifyapp.AnimatedPreloader
-import com.example.spotifyapp.R
 import com.example.spotifyapp.ui.theme.LightBlue
 import com.example.spotifyapp.ui.theme.Purple
 import com.google.firebase.database.FirebaseDatabase
